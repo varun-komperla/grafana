@@ -17,6 +17,10 @@ import (
 	"sync"
 )
 
+var (
+	gEndpoint *CassandraEndpoint
+)
+
 type CassandraEndpoint struct {
 	datasource   *models.DataSource
 	cluster      *gocql.ClusterConfig
@@ -26,18 +30,23 @@ type CassandraEndpoint struct {
 }
 
 func init() {
-	tsdb.RegisterTsdbQueryEndpoint("cassandra", NewCassandraQueryEndpoint)
+	tsdb.RegisterTsdbQueryEndpoint("cassandra", GetOrCreateCassandraQueryEndpoint)
 }
 
-func NewCassandraQueryEndpoint(datasource *models.DataSource) (tsdb.TsdbQueryEndpoint, error) {
-	endpoint := &CassandraEndpoint{
-		datasource: datasource,
-		log:        log.New("tsdb.cassandra"),
+func GetOrCreateCassandraQueryEndpoint(datasource *models.DataSource) (tsdb.TsdbQueryEndpoint, error) {
+	if gEndpoint == nil || gEndpoint.datasource.Updated != datasource.Updated {
+		if gEndpoint != nil {
+			gEndpoint.close()
+		}
+		gEndpoint = &CassandraEndpoint{
+			datasource: datasource,
+			log:        log.New("tsdb.cassandra"),
+		}
+		if err := gEndpoint.init(); err != nil {
+			return nil, err
+		}
 	}
-
-	if err := endpoint.initEngine(); err != nil {
-		return nil, err
-	}
+	endpoint := gEndpoint
 
 	return endpoint, nil
 }
@@ -54,7 +63,7 @@ func (e *CassandraEndpoint) getOrCreateSession() (*gocql.Session, error) {
 	return e.session, err
 }
 
-func (e *CassandraEndpoint) initEngine() error {
+func (e *CassandraEndpoint) init() error {
 	hosts, port, err := splitUrl(e.datasource.Url)
 	if err != nil {
 		return err
@@ -85,13 +94,14 @@ func (e *CassandraEndpoint) initEngine() error {
 		}
 	}
 
-	e.sessionMutex.Lock()
 	e.cluster = cluster
-	e.session = nil
-	e.sessionMutex.Unlock()
 
 	_, err = e.getOrCreateSession()
 	return err
+}
+
+func (e *CassandraEndpoint) close() {
+	e.session.Close()
 }
 
 func splitUrl(url string) ([]string, int, error) {
@@ -173,14 +183,19 @@ func (e CassandraEndpoint) TransformToTable(query *tsdb.Query, rows *gocql.Iter,
 		table.Columns[i].Text = columnInfo.Name
 	}
 
-	rowData, err := rows.RowData()
-	if err != nil {
+	var rowData gocql.RowData
+	var err error
+	if rowData, err = rows.RowData(); err != nil {
 		return err
 	}
 
 	rowCount := 0
 	for ; rows.Scan(rowData.Values...); rowCount += 1 {
 		table.Rows = append(table.Rows, rowData.Values)
+
+		if rowData, err = rows.RowData(); err != nil {
+			return err
+		}
 	}
 
 	result.Tables = append(result.Tables, table)
