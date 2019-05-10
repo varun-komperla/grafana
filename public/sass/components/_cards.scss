@@ -53,8 +53,18 @@
   padding: $space-md;
   border-radius: 4px;
 
+  box-shadow: $card-shadow;
+  background: $panel-editor-viz-item-bg;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  margin-bottom: $space-xxs;
+
   &:hover {
-    background: $card-background-hover;
+    box-shadow: $panel-editor-viz-item-shadow-hover;
+    background: $panel-editor-viz-item-bg-hover;
+    border: $panel-editor-viz-item-border-hover;
+    color: $text-color-strong;
+
   }
 
   .label-tag {

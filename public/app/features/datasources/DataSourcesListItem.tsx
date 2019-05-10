@@ -10,21 +10,16 @@ export class DataSourcesListItem extends PureComponent<Props> {
     const { dataSource } = this.props;
     return (
       <li className="card-item-wrapper">
-        <a className="card-item" href={`datasources/edit/${dataSource.id}`}>
-          <div className="card-item-header">
-            <div className="card-item-type">{dataSource.type}</div>
+        <a className="add-data-source-item" href={`datasources/edit/${dataSource.id}`}>
+          <img className="add-data-source-item-logo" src={dataSource.typeLogoUrl} alt={dataSource.name} />
+          <div className="add-data-source-item-text-wrapper">
+            <span className="add-data-source-item-text">{dataSource.name}</span>
+            {dataSource.url && <span className="add-data-source-item-desc">{dataSource.url}</span>}
           </div>
-          <div className="card-item-body">
-            <figure className="card-item-figure">
-              <img src={dataSource.typeLogoUrl} alt={dataSource.name} />
-            </figure>
-            <div className="card-item-details">
-              <div className="card-item-name">
-                {dataSource.name}
-                {dataSource.isDefault && <span className="btn btn-secondary btn-small card-item-label">default</span>}
-              </div>
-              <div className="card-item-sub-name">{dataSource.url}</div>
-            </div>
+          <div className="add-data-source-item-actions">
+            <button className="btn btn-inverse">Explore</button>
+            <button className="btn btn-inverse">Dashboards</button>
+            <button className="btn btn-secondary">Configure</button>
           </div>
         </a>
       </li>
