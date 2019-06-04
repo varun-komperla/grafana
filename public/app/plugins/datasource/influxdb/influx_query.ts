@@ -270,3 +270,21 @@ export default class InfluxQuery {
     return conditions.join(' ');
   }
 }
+
+export class InfluxLogsQuery extends InfluxQuery {
+  constructor(target, templateSrv?, scopedVars?) {
+    super(target, templateSrv, scopedVars);
+    this.target = target;
+    this.templateSrv = templateSrv;
+    this.scopedVars = scopedVars;
+
+    target.policy = target.policy || 'default';
+    target.resultFormat = 'table';
+    target.orderByTime = target.orderByTime || 'ASC';
+    target.tags = target.tags || [];
+    target.groupBy = [];
+    target.select = [[{ type: 'field', params: ['value'] }]];
+
+    this.updateProjection();
+  }
+}

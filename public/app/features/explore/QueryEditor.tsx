@@ -10,6 +10,7 @@ import { Emitter } from 'app/core/utils/emitter';
 import { DataQuery, TimeRange } from '@grafana/ui';
 import 'app/features/plugins/plugin_loader';
 import { dateTime } from '@grafana/ui/src/utils/moment_wrapper';
+import { ExploreMode } from 'app/types';
 
 interface QueryEditorProps {
   error?: any;
@@ -19,6 +20,7 @@ interface QueryEditorProps {
   initialQuery: DataQuery;
   exploreEvents: Emitter;
   range: TimeRange;
+  mode?: ExploreMode;
 }
 
 export default class QueryEditor extends PureComponent<QueryEditorProps, any> {
@@ -30,7 +32,7 @@ export default class QueryEditor extends PureComponent<QueryEditorProps, any> {
       return;
     }
 
-    const { datasource, initialQuery, exploreEvents, range } = this.props;
+    const { datasource, initialQuery, exploreEvents, range, mode } = this.props;
     this.initTimeSrv(range);
 
     const loader = getAngularLoader();
@@ -54,6 +56,7 @@ export default class QueryEditor extends PureComponent<QueryEditorProps, any> {
         events: exploreEvents,
         panel: { datasource, targets: [target] },
         dashboard: {},
+        mode,
       },
     };
 

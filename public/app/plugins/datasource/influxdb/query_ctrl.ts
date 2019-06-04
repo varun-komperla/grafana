@@ -1,9 +1,10 @@
 import angular from 'angular';
 import _ from 'lodash';
 import { InfluxQueryBuilder } from './query_builder';
-import InfluxQuery from './influx_query';
+import InfluxQuery, { InfluxLogsQuery } from './influx_query';
 import queryPart from './query_part';
 import { QueryCtrl } from 'app/plugins/sdk';
+import { ExploreMode } from 'app/types/explore';
 
 export class InfluxQueryCtrl extends QueryCtrl {
   static templateUrl = 'partials/query.editor.html';
@@ -23,7 +24,14 @@ export class InfluxQueryCtrl extends QueryCtrl {
   constructor($scope, $injector, private templateSrv, private $q, private uiSegmentSrv) {
     super($scope, $injector);
     this.target = this.target;
-    this.queryModel = new InfluxQuery(this.target, templateSrv, this.panel.scopedVars);
+    if (this.mode === ExploreMode.Metrics) {
+      this.queryModel = new InfluxQuery(this.target, templateSrv, this.panel.scopedVars);
+    }
+
+    if (this.mode === ExploreMode.Logs) {
+      this.queryModel = new InfluxLogsQuery(this.target, templateSrv, this.panel.scopedVars);
+    }
+
     this.queryBuilder = new InfluxQueryBuilder(this.target, this.datasource.database);
     this.groupBySegment = this.uiSegmentSrv.newPlusButton();
     this.resultFormats = [{ text: 'Time series', value: 'time_series' }, { text: 'Table', value: 'table' }];

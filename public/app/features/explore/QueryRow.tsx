@@ -116,6 +116,7 @@ export class QueryRow extends PureComponent<QueryRowProps> {
       latency,
       queryErrors,
       mode,
+      index,
     } = this.props;
     let QueryField;
 
@@ -147,6 +148,7 @@ export class QueryRow extends PureComponent<QueryRowProps> {
             />
           ) : (
             <QueryEditor
+              key={mode + index}
               error={queryErrors}
               datasource={datasourceInstance}
               onQueryChange={this.onChange}
@@ -154,6 +156,7 @@ export class QueryRow extends PureComponent<QueryRowProps> {
               initialQuery={query}
               exploreEvents={exploreEvents}
               range={range}
+              mode={mode}
             />
           )}
         </div>
