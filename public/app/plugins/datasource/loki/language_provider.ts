@@ -17,11 +17,13 @@ import {
 import { LokiQuery } from './types';
 import { dateTime } from '@grafana/ui/src/utils/moment_wrapper';
 import { PromQuery } from '../prometheus/types';
+import { TimeRange } from '@grafana/ui';
 
 const DEFAULT_KEYS = ['job', 'namespace'];
 const EMPTY_SELECTOR = '{}';
 const HISTORY_ITEM_COUNT = 10;
 const HISTORY_COUNT_CUTOFF = 1000 * 60 * 60 * 24; // 24h
+const NS_IN_MS = 1_000_000;
 export const LABEL_REFRESH_INTERVAL = 1000 * 30; // 30sec
 
 const wrapLabel = (label: string) => ({ label });
@@ -50,6 +52,7 @@ export default class LokiLanguageProvider extends LanguageProvider {
   logLabelOptions: any[];
   logLabelFetchTs?: number;
   started: boolean;
+  initialRange: TimeRange;
 
   constructor(datasource: any, initialValues?: any) {
     super();
@@ -73,7 +76,7 @@ export default class LokiLanguageProvider extends LanguageProvider {
 
   start = () => {
     if (!this.startTask) {
-      this.startTask = this.fetchLogLabels();
+      this.startTask = this.fetchLogLabels(this.initialRange);
     }
     return this.startTask;
   };
@@ -120,7 +123,7 @@ export default class LokiLanguageProvider extends LanguageProvider {
     return { suggestions };
   }
 
-  getLabelCompletionItems({ text, wrapperClasses, labelKey, value }: TypeaheadInput): TypeaheadOutput {
+  getLabelCompletionItems({ text, wrapperClasses, labelKey, value }: TypeaheadInput, { range }: any): TypeaheadOutput {
     let context: string;
     let refresher: Promise<any> = null;
     const suggestions: CompletionItemGroup[] = [];
@@ -146,7 +149,7 @@ export default class LokiLanguageProvider extends LanguageProvider {
             items: labelValues.map(wrapLabel),
           });
         } else {
-          refresher = this.fetchLabelValues(labelKey);
+          refresher = this.fetchLabelValues(labelKey, range);
         }
       }
     } else {
@@ -227,11 +230,12 @@ export default class LokiLanguageProvider extends LanguageProvider {
     return '';
   }
 
-  async fetchLogLabels(): Promise<any> {
+  async fetchLogLabels(range?: TimeRange): Promise<any> {
     const url = '/api/prom/label';
     try {
       this.logLabelFetchTs = Date.now();
-      const res = await this.request(url);
+      const params = range ? this.rangeToParams(range) : '';
+      const res = await this.request(`${url}${params}`);
       const body = await (res.data || res.json());
       const labelKeys = body.data.slice().sort();
       this.labelKeys = {
@@ -244,7 +248,7 @@ export default class LokiLanguageProvider extends LanguageProvider {
       return Promise.all(
         labelKeys
           .filter((key: string) => DEFAULT_KEYS.indexOf(key) > -1)
-          .map((key: string) => this.fetchLabelValues(key))
+          .map((key: string) => this.fetchLabelValues(key, range))
       );
     } catch (e) {
       console.error(e);
@@ -252,14 +256,15 @@ export default class LokiLanguageProvider extends LanguageProvider {
     return [];
   }
 
-  async refreshLogLabels(forceRefresh?: boolean) {
+  async refreshLogLabels(range: TimeRange, forceRefresh?: boolean) {
     if ((this.labelKeys && Date.now() - this.logLabelFetchTs > LABEL_REFRESH_INTERVAL) || forceRefresh) {
-      await this.fetchLogLabels();
+      await this.fetchLogLabels(range);
     }
   }
 
-  async fetchLabelValues(key: string) {
-    const url = `/api/prom/label/${key}/values`;
+  async fetchLabelValues(key: string, range?: TimeRange) {
+    const params = range ? this.rangeToParams(range) : '';
+    const url = `/api/prom/label/${key}/values${params}`;
     try {
       const res = await this.request(url);
       const body = await (res.data || res.json());
@@ -289,5 +294,13 @@ export default class LokiLanguageProvider extends LanguageProvider {
     } catch (e) {
       console.error(e);
     }
+  }
+
+  private rangeToParams(range: TimeRange): string {
+    const start = range.from.valueOf() * NS_IN_MS;
+    const end = range.to.valueOf() * NS_IN_MS;
+    const params = `?start=${start}&end=${end}`;
+
+    return params;
   }
 }

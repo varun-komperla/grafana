@@ -144,6 +144,7 @@ export class QueryRow extends PureComponent<QueryRowProps> {
               onChange={this.onChange}
               panelData={null}
               queryResponse={queryResponse}
+              range={range}
             />
           ) : (
             <QueryEditor
