@@ -14,10 +14,7 @@ export class KeybindingSrv {
   /** @ngInject */
   constructor(
     private $rootScope,
-    private $modal,
-    private $location,
-    private contextSrv,
-    private $timeout) {
+    private $location) {
 
     // clear out all shortcuts on route change
     $rootScope.$on('$routeChangeSuccess', () => {
@@ -191,6 +188,10 @@ export class KeybindingSrv {
       for (let row of dashboard.rows) {
         row.collapse = false;
       }
+    });
+
+    this.bind('d n', e => {
+      this.$location.url("/dashboard/new");
     });
 
     this.bind('d r', () => {
